@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>عداد الأذكار (أستغفر الله)</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@500;700&display=swap');
+    body {
+      font-family: "Cairo", sans-serif;
+      background: radial-gradient(circle at top left, #0f172a, #1e293b, #0f172a);
+      margin: 0; display: flex; justify-content: center; align-items: center;
+      min-height: 100vh; padding: 20px; color: #fff;
+    }
+    .card {
+      background: rgba(15,23,42,0.7);
+      border-radius: 20px;
+      padding: 28px 22px;
+      width: 380px;
+      box-shadow: 0 0 25px rgba(0,255,255,0.2),
+                  0 0 45px rgba(99,102,241,0.3);
+      text-align: center;
+      backdrop-filter: blur(12px);
+      animation: fadeIn 0.8s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-size: 22px;
+      color: #38bdf8;
+      text-shadow: 0 0 8px #0ea5e9, 0 0 12px #38bdf8;
+    }
+    p.small {
+      margin: 0 0 14px;
+      font-size: 14px;
+      color: #cbd5e1;
+    }
+    .count {
+      font-size: 64px;
+      font-weight: 700;
+      margin: 22px 0;
+      color: #22d3ee;
+      text-shadow: 0 0 10px #06b6d4, 0 0 20px #22d3ee, 0 0 30px #67e8f9;
+      transition: transform 0.2s ease;
+    }
+    .count.bump { transform: scale(1.15); }
+    .controls {
+      display: flex; gap: 10px; justify-content: center; margin-top: 12px;
+    }
+    button {
+      flex: 1;
+      padding: 12px;
+      border-radius: 12px;
+      border: 0;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      color: #fff;
+    }
+    button.primary {
+      background: linear-gradient(135deg,#3b82f6,#6366f1);
+      box-shadow: 0 0 12px rgba(99,102,241,0.8);
+    }
+    button.primary:hover {
+      box-shadow: 0 0 20px rgba(99,102,241,1), 0 0 35px rgba(59,130,246,0.8);
+    }
+    button.ghost {
+      background: linear-gradient(135deg,#0ea5e9,#22d3ee);
+      box-shadow: 0 0 12px rgba(34,211,238,0.7);
+    }
+    button.ghost:hover {
+      box-shadow: 0 0 20px rgba(34,211,238,1), 0 0 35px rgba(14,165,233,0.8);
+    }
+    #status {
+      margin-top: 14px;
+      font-size: 13px;
+      color: #f1f5f9;
+      text-shadow: 0 0 6px #38bdf8;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>✨ عداد الأذكار ✨</h1>
+    <p class="small">يزيد العداد عند قول <b>"أستغفر الله"</b>.</p>
+
+    <div class="count" id="count">0</div>
+
+    <div class="controls">
+      <button id="startBtn" class="primary">▶ ابدأ</button>
+      <button id="stopBtn" class="ghost" disabled>⏸ إيقاف</button>
+      <button id="resetBtn" class="ghost">🔄 تفريغ</button>
+    </div>
+
+    <div id="status">⏹ متوقف</div>
+  </div>
+
+  <script>
+  const STORAGE_KEY = 'astaghfar_counter_neon';
+  let count = Number(localStorage.getItem(STORAGE_KEY) || 0);
+  const countEl = document.getElementById('count');
+  const statusEl = document.getElementById('status');
+  function render(){ countEl.textContent = String(count); }
+  function save(){ localStorage.setItem(STORAGE_KEY,String(count)); }
+  render();
+
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn  = document.getElementById('stopBtn');
+  const resetBtn = document.getElementById('resetBtn');
+
+  startBtn.addEventListener('click', startListening);
+  stopBtn.addEventListener('click', stopListening);
+  resetBtn.addEventListener('click', ()=>{ 
+    if(confirm('هل تريد تفريغ العداد؟')){ count=0; save(); render(); }
+  });
+
+  let active = false;
+  let wsRecognition = null;
+  let lastDetectTime = 0;
+
+  // 🎵 صوت Ping (Base64)
+  const pingAudio = new Audio("data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAACAAACcQCA...");
+  
+  async function startListening(){
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    statusEl.textContent = '🎤 جارٍ الاستماع... قل "أستغفر الله".';
+    active = true;
+    try{
+      await startSpeech();
+    }catch(err){
+      statusEl.textContent = '⚠️ خطأ: '+(err.message||err);
+      stopBtn.disabled = true;
+      startBtn.disabled = false;
+      active = false;
+    }
+  }
+
+  function stopListening(){
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    statusEl.textContent = '⏹ متوقف';
+    active = false;
+    stopSpeech();
+  }
+
+  function onHotword(){
+    const now = Date.now();
+    if(now - lastDetectTime < 800) return;
+    lastDetectTime = now;
+
+    if(navigator.vibrate) navigator.vibrate(80);
+    pingAudio.currentTime = 0;
+    pingAudio.play(); // ✅ تشغيل الصوت
+
+    count++;
+    render(); save();
+
+    countEl.classList.add("bump");
+    setTimeout(()=> countEl.classList.remove("bump"),200);
+  }
+
+  async function startSpeech(){
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SpeechRecognition) throw new Error('المتصفح لا يدعم التعرف على الصوت.');
+    wsRecognition = new SpeechRecognition();
+    wsRecognition.lang = 'ar-SA';
+    wsRecognition.continuous = true;
+    wsRecognition.interimResults = true;
+
+    wsRecognition.onresult = (event)=>{
+      for(let i=event.resultIndex;i<event.results.length;i++){
+        const text = event.results[i][0].transcript.trim();
+        const normalized = text.replace(/[\u064B-\u0652\s]/g,'').toLowerCase();
+        if(normalized.includes('استغفرالله') || normalized.includes('استغفر')){
+          onHotword();
+        }
+      }
+    };
+
+    wsRecognition.onerror = (e)=>{
+      statusEl.textContent = '⚠️ خطأ في التعرف: '+(e.error||'');
+    };
+
+    wsRecognition.onend = ()=>{
+      if(active){ try{ wsRecognition.start(); }catch{} }
+    };
+
+    wsRecognition.start();
+  }
+
+  function stopSpeech(){
+    if(wsRecognition){
+      try{ wsRecognition.stop(); }catch{}
+      wsRecognition=null;
+    }
+  }
+  </script>
+</body>
+</html>
