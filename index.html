@@ -11,6 +11,7 @@
       background: radial-gradient(circle at top left, #0f172a, #1e293b, #0f172a);
       margin: 0; display: flex; justify-content: center; align-items: center;
       min-height: 100vh; padding: 20px; color: #fff;
+      user-select: none; /* منع التحديد */
     }
     .card {
       background: rgba(15,23,42,0.7);
@@ -85,8 +86,8 @@
 </head>
 <body>
   <div class="card">
-    <h1> عداد الأذكار</h1>
-    <p class="small">يزيد العداد عند قول <b>"أستغفر الله"</b>.</p>
+    <h1>عداد الأذكار</h1>
+    <p class="small">يزيد العداد عند قول <b>"أستغفر الله"</b> أو عند لمس الشاشة.</p>
 
     <div class="count" id="count">0</div>
 
@@ -125,6 +126,23 @@
   // 🎵 صوت Ping (Base64)
   const pingAudio = new Audio("data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAACAAACcQCA...");
   
+  // ✅ دالة الزيادة المشتركة
+  function onHotword(){
+    const now = Date.now();
+    if(now - lastDetectTime < 400) return; // منع التكرار السريع
+    lastDetectTime = now;
+
+    if(navigator.vibrate) navigator.vibrate(80);
+    try { pingAudio.currentTime = 0; pingAudio.play(); } catch(e) {}
+
+    count++;
+    render(); save();
+
+    countEl.classList.add("bump");
+    setTimeout(()=> countEl.classList.remove("bump"),200);
+  }
+
+  // 🎤 التعرف الصوتي
   async function startListening(){
     startBtn.disabled = true;
     stopBtn.disabled = false;
@@ -146,22 +164,6 @@
     statusEl.textContent = '⏹ متوقف';
     active = false;
     stopSpeech();
-  }
-
-  function onHotword(){
-    const now = Date.now();
-    if(now - lastDetectTime < 800) return;
-    lastDetectTime = now;
-
-    if(navigator.vibrate) navigator.vibrate(80);
-    pingAudio.currentTime = 0;
-    pingAudio.play(); // ✅ تشغيل الصوت
-
-    count++;
-    render(); save();
-
-    countEl.classList.add("bump");
-    setTimeout(()=> countEl.classList.remove("bump"),200);
   }
 
   async function startSpeech(){
@@ -199,6 +201,14 @@
       wsRecognition=null;
     }
   }
+
+  // 📱 الضغط على الشاشة يزيد العداد (يعمل في WebView)
+  ["click","touchstart"].forEach(evt=>{
+    document.body.addEventListener(evt, (e)=>{
+      if(e.target.tagName.toLowerCase() === 'button') return;
+      onHotword();
+    });
+  });
   </script>
 </body>
 </html>
