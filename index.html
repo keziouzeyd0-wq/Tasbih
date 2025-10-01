@@ -4,6 +4,23 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>عداد الأذكار (أستغفر الله)</title>
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="عداد الأذكار (أستغفر الله)" />
+  <meta property="og:description" content="تطبيق ويب بسيط يعد أذكارك عند قول أستغفر الله أو عند لمس الشاشة." />
+  <meta property="og:url" content="https://keziouzeyd0-wq.github.io/Tasbih/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://i.postimg.cc/BQ8HfV1H/Screenshot-2025-10-01-11-09-52-50-06d0f9554a0a05ce054ef8d232e87828.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="واجهة عداد الأذكار" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="عداد الأذكار (أستغفر الله)" />
+  <meta name="twitter:description" content="تطبيق ويب بسيط يعد أذكارك عند قول أستغفر الله أو عند لمس الشاشة." />
+  <meta name="twitter:image" content="https://i.postimg.cc/BQ8HfV1H/Screenshot-2025-10-01-11-09-52-50-06d0f9554a0a05ce054ef8d232e87828.jpg" />
+
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@500;700&display=swap');
     body {
@@ -123,13 +140,11 @@
   let wsRecognition = null;
   let lastDetectTime = 0;
 
-  // 🎵 صوت Ping (Base64)
   const pingAudio = new Audio("data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAACAAACcQCA...");
   
-  // ✅ دالة الزيادة المشتركة
   function onHotword(){
     const now = Date.now();
-    if(now - lastDetectTime < 400) return; // منع التكرار السريع
+    if(now - lastDetectTime < 400) return;
     lastDetectTime = now;
 
     if(navigator.vibrate) navigator.vibrate(80);
@@ -142,7 +157,6 @@
     setTimeout(()=> countEl.classList.remove("bump"),200);
   }
 
-  // 🎤 التعرف الصوتي
   async function startListening(){
     startBtn.disabled = true;
     stopBtn.disabled = false;
@@ -202,7 +216,6 @@
     }
   }
 
-  // 📱 الضغط على الشاشة يزيد العداد (يعمل في WebView)
   ["click","touchstart"].forEach(evt=>{
     document.body.addEventListener(evt, (e)=>{
       if(e.target.tagName.toLowerCase() === 'button') return;
